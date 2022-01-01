@@ -1,0 +1,206 @@
+\documentclass[openany]{article}
+
+%Standard Stefanos Packages
+\usepackage[utf8]{inputenc}
+\usepackage{dirtytalk}
+\usepackage{amsmath}
+\usepackage{mathtools}  
+\mathtoolsset{showonlyrefs} 
+\usepackage{graphicx}
+\usepackage{mdframed}
+\usepackage{lipsum}
+\usepackage{cancel}
+\usepackage{systeme}
+\usepackage{pgfplots}
+\usepackage{textcomp}
+\usepackage{geometry}
+\usetikzlibrary{arrows}
+\geometry{a4paper}
+\graphicspath{ {./res/} }
+\usepackage{float}
+\restylefloat{table}
+\newcommand{\comment}[1]{%
+	\text{\phantom{(#1)}} \tag{#1}
+}
+\title{\line(3,0){250}\\PROGRAMMING IN PYTHON FOR DATA SCIENCE(CS3PP19) \\ Final Exam: Question 4  \\\line(3,0){250}}
+\usepackage{pgfplots}
+\author{52944}
+\newmdtheoremenv{note}{Note}
+\pgfplotsset{compat=1.17}
+
+
+%Extra Packages
+\usepackage{tikz}
+\usetikzlibrary{automata,positioning}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinestyle{myScalastyle}{
+	frame=tb,
+	language=scala,
+	aboveskip=3mm,
+	belowskip=3mm,
+	showstringspaces=false,
+	columns=flexible,
+	basicstyle={\small\ttfamily},
+	numbers=none,
+	numberstyle=\tiny\color{gray},
+	keywordstyle=\color{blue},
+	commentstyle=\color{dkgreen},
+	stringstyle=\color{mauve},
+	frame=single,
+	breaklines=true,
+	breakatwhitespace=true,
+	tabsize=3,
+}
+
+\begin{document}
+	\maketitle
+	\section{Initialization Code}
+		Load the nessesary libraries + dataset
+		\begin{lstlisting}[language=Python]
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn import svm
+from sklearn import datasets
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error,r2_score
+import numpy as np
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+data=pd.read_csv("data.csv")
+		\end{lstlisting}
+		standard pre-processing
+		\begin{lstlisting}[language=Python]
+data=data.dropna()
+data=data.drop_duplicates()
+original=data.copy()
+		\end{lstlisting}
+		and mapping all string category variables into numeric
+		\begin{lstlisting}[language=Python]
+mapping = {
+	"school":{"MS":0,"GP":1},
+	"sex":{"M":0,"F":1},
+	"address":{"U":0,"R":1},
+	"famsize":{"LE3":0,"GT3":1},
+	"Pstatus":{"T":0,"A":1},
+	"Mjob":{"teacher":0,"health":1,"services":2,"at_home":3,"other":4},
+	"Fjob":{"teacher":0,"health":1,"services":2,"at_home":3,"other":4},
+	"reason":{"home":0,"reputation":1,"course":2,"other":3},
+	"guardian":{"father":0,"mother":1,"other":2},
+	"schoolsup":{"yes":0,"no":1},
+	"famsup":{"yes":0,"no":1},
+	"paid":{"yes":0,"no":1},
+	"activities":{"yes":0,"no":1},
+	"nursery":{"yes":0,"no":1},
+	"higher":{"yes":0,"no":1},
+	"internet":{"yes":0,"no":1},
+	"romantic":{"yes":0,"no":1}
+
+}
+data_numeric=data.replace(mapping)
+		\end{lstlisting}
+		finaly the models
+		\begin{lstlisting}[language=Python]
+train,ttrain,test,ttest=train_test_split(data_numeric,target,test_size=0.2,random_state=1)
+model1=LogisticRegression(max_iter=500000)
+model1.fit(train,test)
+model1.score(ttrain,ttest)
+model2=svm.SVC(gamma=0.001, C=100.)
+model2.fit(train,test)
+model2.score(ttrain,ttest)
+		\end{lstlisting}
+		\section{Q4.a.i}
+			We will perform a kfold cross validation, with k=10. First for Logistic regression
+			\begin{lstlisting}[language=Python]
+k=10
+model1scores=[]
+for i in range(k):
+	train,ttrain,test,ttest=train_test_split(data_numeric,target,test_size=0.2,random_state=42+i)
+	model1=LogisticRegression(max_iter=50000)
+	model1.fit(train,test)
+	model1scores.append(model1.score(ttrain,ttest))
+	
+			\end{lstlisting}
+			And then for Support Vector Machine
+			\begin{lstlisting}[language=Python]
+k=10
+model2scores=[]
+for i in range(k):
+	train,ttrain,test,ttest=train_test_split(data_numeric,target,test_size=0.2,random_state=42+i)
+	model2=svm.SVC(gamma=0.001, C=100.)
+	model2.fit(train,test)
+	model2scores.append(model2.score(ttrain,ttest))
+			\end{lstlisting}
+			Finally we will produce a boxplot of the variance of the scores, to compare
+			\begin{lstlisting}[language=Python]
+kfold=pd.DataFrame()
+kfold['Logistic']=pd.Series(model1scores)
+kfold['SVM']=pd.Series(model2scores)
+plt.boxplot(kfold,labels=['Logistic','SVM'])
+			\end{lstlisting}
+			\begin{figure}[H]
+				\iftrue
+				\centering
+				\caption{Class Counts on grades}
+				\includegraphics[scale=0.5]{q4-a-i-1}
+				\fi
+			\end{figure}
+			Becomes evident that the Logistic Regression performs slighly better than the SVC, this is something to be expected though, due to the nature of the
+			algorithms themselfes. SVC is a pure geometric algorithm that tries to 'fit' a prediction to the nearest cluster, Logistic Regression in contrast, 
+			uses the statistical properties of the datapoints to predict an unknown datapoint. This by itself is not an issue, but if we take into account the fact 
+			that this dataset has inbalanced clusters, this makes sence. fewer datapoints on specific grades, bigger the probability of a wrong classification for 
+			SVC. By running the following command, this becomes evident
+			 \begin{lstlisting}[language=Python]
+original.groupby('grade').grade.count()	
+			 \end{lstlisting}
+			 \begin{table}[H]
+			 	\centering
+			 	\begin{tabular}{lll}
+			 		A & 39  &  \\
+			 		B & 91  &  \\
+			 		C & 189 &  \\
+			 		D & 22  &  \\
+			 		E & 7   & 
+			 	\end{tabular}
+			 \end{table}
+		\section{Q4.a.ii}
+			Using the skmetrics method confusion$\_$matrix as well as the seaborns heatmap plot, we can visualize the matrix in a nice way. Lets apply on LogisticRegression
+			\begin{lstlisting}[language=Python]
+train,ttrain,test,ttest=train_test_split(data_numeric,target,test_size=0.2,random_state=42)
+model1=LogisticRegression(max_iter=500000)
+model1.fit(train,test)
+cf_matrix = confusion_matrix(ttest, model1.predict(ttrain))
+sns.heatmap(cf_matrix,annot=True)
+			\end{lstlisting}
+			\begin{figure}[H]
+				\iftrue
+				\centering
+				\caption{Confusion-matrix-heatmap:LogisticRegression}
+				\includegraphics[scale=0.5]{q4-a-ii-1}
+				\fi
+			\end{figure}
+			And on SVM as well...
+			\begin{lstlisting}[language=Python]
+train,ttrain,test,ttest=train_test_split(data_numeric,target,test_size=0.2,random_state=42)
+model2=svm.SVC(gamma=0.001, C=100.)
+model2.fit(train,test)
+cf_matrix = confusion_matrix(ttest, model2.predict(ttrain))
+sns.heatmap(cf_matrix,annot=True)
+			\end{lstlisting}
+			\begin{figure}[H]
+				\iftrue
+				\centering
+				\caption{Confusion-matrix-heatmap:SVM}
+				\includegraphics[scale=0.5]{q4-a-ii-2}
+				\fi
+			\end{figure}
+
+			
+\end{document}
